@@ -1,16 +1,127 @@
-# This is a sample Python script.
+import numpy as np
+import random
+import time
+import multiprocessing
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+GRID_WIDTH = 512
+GRID_HEIGHT = 128
+
+grid = [['| |' for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def print_grid(grid):
+    for line in grid:
+        print(' '.join(line))
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+def minkowski_distance(point1, point2):
+    distance = 0
+    for i in range(len(point1)):
+        distance += abs(point1[i] - point2[i]) ** 1
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    distance = distance ** 1
+
+    return distance
+
+
+def best_path(x_personne, y_personne, x_objectif, y_objectif):
+    best_x = 0
+    best_y = 0
+    best_distance = 10000000
+    if (x_personne + 1 < GRID_WIDTH and grid[y_personne][x_personne + 1] != '|X|', '|1|', '|2|'):
+        distance = minkowski_distance([x_personne + 1, y_personne], [x_objectif, y_objectif])
+        if distance < best_distance:
+            best_distance = distance
+            best_x = x_personne + 1
+            best_y = y_personne
+    if (x_personne - 1 >= 0 and grid[y_personne][x_personne - 1] != '|X|', '|1|', '|2|'):
+        distance = minkowski_distance([x_personne - 1, y_personne], [x_objectif, y_objectif])
+        if distance < best_distance:
+            best_distance = distance
+            best_x = x_personne - 1
+            best_y = y_personne
+    if (y_personne + 1 < GRID_HEIGHT and grid[y_personne + 1][x_personne] != '|X|', '|1|', '|2|'):
+        distance = minkowski_distance([x_personne, y_personne + 1], [x_objectif, y_objectif])
+        if distance < best_distance:
+            best_distance = distance
+            best_x = x_personne
+            best_y = y_personne + 1
+    if (y_personne - 1 >= 0 and grid[y_personne - 1][x_personne] != '|X|', '|1|', '|2|'):
+        distance = minkowski_distance([x_personne, y_personne - 1], [x_objectif, y_objectif])
+        if distance < best_distance:
+            best_distance = distance
+            best_x = x_personne
+            best_y = y_personne - 1
+
+    return best_x, best_y
+
+
+def main(nb_personnes):
+    for _ in range(2):
+        x_obstacle = random.randint(0, GRID_WIDTH - 1)
+        y_obstacle = random.randint(0, GRID_HEIGHT - 1)
+        grid[y_obstacle][x_obstacle] = '|X|'
+
+    x_objectif = np.random.randint(0, GRID_WIDTH - 1)
+    y_objectif = np.random.randint(0, GRID_HEIGHT - 1)
+    grid[y_objectif][x_objectif] = '|T|'
+
+    personnes = []
+    isArrived = []
+    for i in range(nb_personnes):
+        x_personne = np.random.randint(0, GRID_WIDTH - 1)
+        y_personne = np.random.randint(0, GRID_HEIGHT - 1)
+        personnes.append((x_personne, y_personne))
+        isArrived.append(False)
+        grid[y_personne][x_personne] = f'|{i + 1}|'
+
+
+    lap = 1
+
+    while True:
+        #print("Tour : ", lap)
+        for i in range(nb_personnes):
+            x, y = personnes[i]
+            best_x, best_y = best_path(x, y, x_objectif, y_objectif)
+            if best_x == x_objectif and best_y == y_objectif and not isArrived[i]:
+                #print(f"Personne {i + 1} a atteint l'objectif et disparaît !")
+                grid[y][x] = '| |'
+                isArrived[i] = True
+            elif not isArrived[i]:
+                grid[y][x] = '| |'
+                grid[best_y][best_x] = f'|{i + 1}|'
+                personnes[i] = (best_x, best_y)
+
+
+
+
+        if all(isArrived):
+            #print("Toutes les personnes ont atteint l'objectif !")
+            break
+
+        lap += 1
+
+
+def measure_execution_time(num_personnes):
+    start_time = time.time()
+    main(num_personnes)
+    end_time = time.time()
+    return end_time - start_time
+
+
+if __name__ == "__main__":
+    num_personnes = [2**1, 2**2, 2**3, 2**4, 2**5, 2**6, 2**7, 2**8, 2**9, 2**10]
+    execution_times = []
+
+    for n in num_personnes:
+        execution_time = measure_execution_time(n)
+        execution_times.append(execution_time)
+
+    speedup = execution_times[0] / np.array(execution_times)
+
+    efficiency = speedup / np.array(num_personnes)
+
+    print("Nombre de personnes:", num_personnes)
+    print("Temps d'exécution (secondes):", execution_times)
+    print("Speedup:", speedup)
+    print("Efficacité:", efficiency)
