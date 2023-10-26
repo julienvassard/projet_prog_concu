@@ -1,74 +1,127 @@
 import numpy as np
+import random
+import time
+import multiprocessing
 
-GRID_WIDTH = 10
-GRID_HEIGHT = 10
+GRID_WIDTH = 512
+GRID_HEIGHT = 128
 
-def init_grid():
-    grid = np.zeros((GRID_WIDTH, GRID_HEIGHT), dtype=int)
-
-    # Obstacles
-    grid[1, 7] = 1
-    grid[8, 3] = 1
-
-    # Person
-    grid[0, 0] = 3
-    grid[9, 9] = 3
-
-    # Obejctive
-    grid[5, 4] = 2
-
-    return grid
-
-def minkowski_distance(pos1, pos2):
-    return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
-
-def move_person(grid, person_pos, objective_pos):
-    # Get the possible moves
-    possible_moves = []
-    # Move up
-    if person_pos[0] > 0:
-        possible_moves.append((person_pos[0] - 1, person_pos[1]))
-    # Move down
-    if person_pos[0] < GRID_HEIGHT - 1:
-        possible_moves.append((person_pos[0] + 1, person_pos[1]))
-    # Move left
-    if person_pos[1] > 0:
-        possible_moves.append((person_pos[0], person_pos[1] - 1))
-    # Move right
-    if person_pos[1] < GRID_WIDTH - 1:
-        possible_moves.append((person_pos[0], person_pos[1] + 1))
-
-    # Get the best move
-    best_move = possible_moves[0]
-    best_move_distance = minkowski_distance(possible_moves[0], objective_pos)
-    for move in possible_moves:
-        move_distance = minkowski_distance(move, objective_pos)
-        if move_distance < best_move_distance:
-            best_move = move
-            best_move_distance = move_distance
-
-    # Move the person
-    grid[person_pos[0], person_pos[1]] = 0
-    grid[best_move[0], best_move[1]] = 3
-
-    return grid, best_move
+grid = [['| |' for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
 
 
-def main():
+def print_grid(grid):
+    for line in grid:
+        print(' '.join(line))
 
-    grid = init_grid()
-    #Init person
-    person1_pos = (0, 0)
-    person2_pos = (9, 9)
-    #Init objective
-    objective_pos = (5, 4)
-    #Init obstacles
-    obstacles_pos = [(1, 7), (8, 3)]
 
-    print(grid)
+def minkowski_distance(point1, point2):
+    distance = 0
+    for i in range(len(point1)):
+        distance += abs(point1[i] - point2[i]) ** 1
 
-    print(minkowski_distance(person1_pos, objective_pos))
-    print(minkowski_distance(person2_pos, objective_pos))
+    distance = distance ** 1
+
+    return distance
+
+
+def best_path(x_personne, y_personne, x_objectif, y_objectif):
+    best_x = 0
+    best_y = 0
+    best_distance = 10000000
+    if (x_personne + 1 < GRID_WIDTH and grid[y_personne][x_personne + 1] != '|X|', '|1|', '|2|'):
+        distance = minkowski_distance([x_personne + 1, y_personne], [x_objectif, y_objectif])
+        if distance < best_distance:
+            best_distance = distance
+            best_x = x_personne + 1
+            best_y = y_personne
+    if (x_personne - 1 >= 0 and grid[y_personne][x_personne - 1] != '|X|', '|1|', '|2|'):
+        distance = minkowski_distance([x_personne - 1, y_personne], [x_objectif, y_objectif])
+        if distance < best_distance:
+            best_distance = distance
+            best_x = x_personne - 1
+            best_y = y_personne
+    if (y_personne + 1 < GRID_HEIGHT and grid[y_personne + 1][x_personne] != '|X|', '|1|', '|2|'):
+        distance = minkowski_distance([x_personne, y_personne + 1], [x_objectif, y_objectif])
+        if distance < best_distance:
+            best_distance = distance
+            best_x = x_personne
+            best_y = y_personne + 1
+    if (y_personne - 1 >= 0 and grid[y_personne - 1][x_personne] != '|X|', '|1|', '|2|'):
+        distance = minkowski_distance([x_personne, y_personne - 1], [x_objectif, y_objectif])
+        if distance < best_distance:
+            best_distance = distance
+            best_x = x_personne
+            best_y = y_personne - 1
+
+    return best_x, best_y
+
+
+def main(nb_personnes):
+    for _ in range(2):
+        x_obstacle = random.randint(0, GRID_WIDTH - 1)
+        y_obstacle = random.randint(0, GRID_HEIGHT - 1)
+        grid[y_obstacle][x_obstacle] = '|X|'
+
+    x_objectif = np.random.randint(0, GRID_WIDTH - 1)
+    y_objectif = np.random.randint(0, GRID_HEIGHT - 1)
+    grid[y_objectif][x_objectif] = '|T|'
+
+    personnes = []
+    isArrived = []
+    for i in range(nb_personnes):
+        x_personne = np.random.randint(0, GRID_WIDTH - 1)
+        y_personne = np.random.randint(0, GRID_HEIGHT - 1)
+        personnes.append((x_personne, y_personne))
+        isArrived.append(False)
+        grid[y_personne][x_personne] = f'|{i + 1}|'
+
+
+    lap = 1
+
+    while True:
+        #print("Tour : ", lap)
+        for i in range(nb_personnes):
+            x, y = personnes[i]
+            best_x, best_y = best_path(x, y, x_objectif, y_objectif)
+            if best_x == x_objectif and best_y == y_objectif and not isArrived[i]:
+                #print(f"Personne {i + 1} a atteint l'objectif et disparaît !")
+                grid[y][x] = '| |'
+                isArrived[i] = True
+            elif not isArrived[i]:
+                grid[y][x] = '| |'
+                grid[best_y][best_x] = f'|{i + 1}|'
+                personnes[i] = (best_x, best_y)
+
+
+
+
+        if all(isArrived):
+            #print("Toutes les personnes ont atteint l'objectif !")
+            break
+
+        lap += 1
+
+
+def measure_execution_time(num_personnes):
+    start_time = time.time()
+    main(num_personnes)
+    end_time = time.time()
+    return end_time - start_time
+
 
 if __name__ == "__main__":
-    main()
+    num_personnes = [2**1, 2**2, 2**3, 2**4, 2**5, 2**6, 2**7, 2**8, 2**9, 2**10]
+    execution_times = []
+
+    for n in num_personnes:
+        execution_time = measure_execution_time(n)
+        execution_times.append(execution_time)
+
+    speedup = execution_times[0] / np.array(execution_times)
+
+    efficiency = speedup / np.array(num_personnes)
+
+    print("Nombre de personnes:", num_personnes)
+    print("Temps d'exécution (secondes):", execution_times)
+    print("Speedup:", speedup)
+    print("Efficacité:", efficiency)
