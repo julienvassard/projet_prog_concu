@@ -28,25 +28,25 @@ def best_path(x_personne, y_personne, x_objectif, y_objectif):
     best_x = 0
     best_y = 0
     best_distance = 10000000
-    if (x_personne + 1 < GRID_WIDTH and grid[y_personne][x_personne + 1] != '|X|', '|1|', '|2|'):
+    if x_personne + 1 < GRID_WIDTH and grid[y_personne][x_personne + 1] != '|X|':
         distance = minkowski_distance([x_personne + 1, y_personne], [x_objectif, y_objectif])
         if distance < best_distance:
             best_distance = distance
             best_x = x_personne + 1
             best_y = y_personne
-    if (x_personne - 1 >= 0 and grid[y_personne][x_personne - 1] != '|X|', '|1|', '|2|'):
+    if x_personne - 1 >= 0 and grid[y_personne][x_personne - 1] != '|X|':
         distance = minkowski_distance([x_personne - 1, y_personne], [x_objectif, y_objectif])
         if distance < best_distance:
             best_distance = distance
             best_x = x_personne - 1
             best_y = y_personne
-    if (y_personne + 1 < GRID_HEIGHT and grid[y_personne + 1][x_personne] != '|X|', '|1|', '|2|'):
+    if y_personne + 1 < GRID_HEIGHT and grid[y_personne + 1][x_personne] != '|X|':
         distance = minkowski_distance([x_personne, y_personne + 1], [x_objectif, y_objectif])
         if distance < best_distance:
             best_distance = distance
             best_x = x_personne
             best_y = y_personne + 1
-    if (y_personne - 1 >= 0 and grid[y_personne - 1][x_personne] != '|X|', '|1|', '|2|'):
+    if y_personne - 1 >= 0 and grid[y_personne - 1][x_personne] != '|X|':
         distance = minkowski_distance([x_personne, y_personne - 1], [x_objectif, y_objectif])
         if distance < best_distance:
             best_distance = distance
@@ -75,7 +75,7 @@ def main(nb_personnes):
         isArrived.append(False)
         grid[y_personne][x_personne] = f'|{i + 1}|'
 
-
+    print("Nombre personnes:", len(personnes))
     lap = 1
 
     while True:
