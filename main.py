@@ -4,6 +4,7 @@ import random
 import time
 import multiprocessing
 import threading
+import logging
 
 GRID_WIDTH = 512
 GRID_HEIGHT = 128
@@ -105,7 +106,7 @@ def main(nb_personnes):
     #print_grid(grid)
 
 
-    print("Nombre personnes:", len(personnes))
+    #print("Nombre personnes:", len(personnes))
     lap = 1
 
 
@@ -138,6 +139,9 @@ def measure_execution_time(num_personnes):
 
 
 if __name__ == "__main__":
+
+    logging.basicConfig(level=logging.INFO)
+
     num_personnes = [2**1, 2**2, 2**3, 2**4, 2**5, 2**6, 2**7, 2**8, 2**9, 2**10]
     execution_times = []
 
@@ -149,7 +153,7 @@ if __name__ == "__main__":
 
     efficiency = speedup / np.array(num_personnes)
 
-    print("Nombre de personnes:", num_personnes)
-    print("Temps d'exécution (secondes):", execution_times)
-    print("Speedup:", speedup)
-    print("Efficacité:", efficiency)
+    logging.info("Nombre de personnes: %s", num_personnes)
+    logging.info("Temps d'exécution (secondes): %s", execution_times)
+    logging.info("Speedup: %s", speedup)
+    logging.info("Efficacité: %s", efficiency)
