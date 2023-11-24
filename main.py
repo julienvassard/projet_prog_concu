@@ -1,7 +1,10 @@
+
 import numpy as np
 import random
 import time
 import multiprocessing
+import threading
+import logging
 
 GRID_WIDTH = 512
 GRID_HEIGHT = 128
@@ -56,7 +59,22 @@ def best_path(x_personne, y_personne, x_objectif, y_objectif):
     return best_x, best_y
 
 
+def person_thread(person_index, x_personne, y_personne, x_objectif, y_objectif, isArrived, personnes):
+    while not isArrived[person_index]:
+        x, y = personnes[person_index]
+        best_x, best_y = best_path(x, y, x_objectif, y_objectif)
+        if best_x == x_objectif and best_y == y_objectif and not isArrived[person_index]:
+            grid[y][x] = '| |'
+            isArrived[person_index] = True
+        elif not isArrived[person_index]:
+            grid[y][x] = '| |'
+            grid[best_y][best_x] = f'|{person_index + 1}|'
+            personnes[person_index] = (best_x, best_y)
+
+
+
 def main(nb_personnes):
+
     for _ in range(2):
         x_obstacle = random.randint(0, GRID_WIDTH - 1)
         y_obstacle = random.randint(0, GRID_HEIGHT - 1)
@@ -68,6 +86,8 @@ def main(nb_personnes):
 
     personnes = []
     isArrived = []
+    threads = []
+
     for i in range(nb_personnes):
         x_personne = np.random.randint(0, GRID_WIDTH - 1)
         y_personne = np.random.randint(0, GRID_HEIGHT - 1)
@@ -75,8 +95,21 @@ def main(nb_personnes):
         isArrived.append(False)
         grid[y_personne][x_personne] = f'|{i + 1}|'
 
-    print("Nombre personnes:", len(personnes))
+        thread = threading.Thread(target=person_thread,
+                                  args=(i, x_personne, y_personne, x_objectif, y_objectif, isArrived, personnes))
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    #print_grid(grid)
+
+
+    #print("Nombre personnes:", len(personnes))
     lap = 1
+
+
 
     while True:
         #print("Tour : ", lap)
@@ -92,13 +125,9 @@ def main(nb_personnes):
                 grid[best_y][best_x] = f'|{i + 1}|'
                 personnes[i] = (best_x, best_y)
 
-
-
-
         if all(isArrived):
             #print("Toutes les personnes ont atteint l'objectif !")
             break
-
         lap += 1
 
 
@@ -110,6 +139,9 @@ def measure_execution_time(num_personnes):
 
 
 if __name__ == "__main__":
+
+    logging.basicConfig(level=logging.INFO)
+
     num_personnes = [2**1, 2**2, 2**3, 2**4, 2**5, 2**6, 2**7, 2**8, 2**9, 2**10]
     execution_times = []
 
@@ -121,7 +153,7 @@ if __name__ == "__main__":
 
     efficiency = speedup / np.array(num_personnes)
 
-    print("Nombre de personnes:", num_personnes)
-    print("Temps d'exécution (secondes):", execution_times)
-    print("Speedup:", speedup)
-    print("Efficacité:", efficiency)
+    logging.info("Nombre de personnes: %s", num_personnes)
+    logging.info("Temps d'exécution (secondes): %s", execution_times)
+    logging.info("Speedup: %s", speedup)
+    logging.info("Efficacité: %s", efficiency)
