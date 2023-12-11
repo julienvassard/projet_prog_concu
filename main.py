@@ -10,7 +10,20 @@ GRID_WIDTH = 512
 GRID_HEIGHT = 128
 
 grid = [['| |' for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+lock = threading.Lock()
 
+def process_section(section, x_objectif, y_objectif, personnes, isArrived):
+    while not all(isArrived):
+        for i, (x, y) in enumerate(personnes):
+            if not isArrived[i]:
+                best_x, best_y = best_path(x, y, x_objectif, y_objectif)
+                if best_x == x_objectif and best_y == y_objectif:
+                    section[y][x] = '| |'
+                    isArrived[i] = True
+                else:
+                    section[y][x] = '| |'
+                    section[best_y][best_x] = f'|{i + 1}|'
+                    personnes[i] = (best_x, best_y)
 
 def print_grid(grid):
     for line in grid:
@@ -59,30 +72,31 @@ def best_path(x_personne, y_personne, x_objectif, y_objectif):
     return best_x, best_y
 
 
-def person_thread(person_index, x_personne, y_personne, x_objectif, y_objectif, isArrived, personnes):
+def move_person(person_index, x_objectif, y_objectif, isArrived, personnes):
     while not isArrived[person_index]:
         x, y = personnes[person_index]
-        best_x, best_y = best_path(x, y, x_objectif, y_objectif)
-        if best_x == x_objectif and best_y == y_objectif and not isArrived[person_index]:
-            grid[y][x] = '| |'
-            isArrived[person_index] = True
-        elif not isArrived[person_index]:
-            grid[y][x] = '| |'
-            grid[best_y][best_x] = f'|{person_index + 1}|'
-            personnes[person_index] = (best_x, best_y)
+        with lock:
+            best_x, best_y = best_path(x, y, x_objectif, y_objectif)
+            if best_x == x_objectif and best_y == y_objectif and not isArrived[person_index]:
+                grid[y][x] = '| |'
+                isArrived[person_index] = True
+            elif not isArrived[person_index]:
+                grid[y][x] = '| |'
+                grid[best_y][best_x] = f'|{person_index + 1}|'
+                personnes[person_index] = (best_x, best_y)
 
 
 
 def main(nb_personnes):
+    middle_width = GRID_WIDTH // 2
+    middle_height = GRID_HEIGHT // 2
 
-    for _ in range(2):
-        x_obstacle = random.randint(0, GRID_WIDTH - 1)
-        y_obstacle = random.randint(0, GRID_HEIGHT - 1)
-        grid[y_obstacle][x_obstacle] = '|X|'
+    section_1 = [row[:middle_width] for row in grid[:middle_height]]
+    section_2 = [row[middle_width:] for row in grid[:middle_height]]
+    section_3 = [row[:middle_width] for row in grid[middle_height:]]
+    section_4 = [row[middle_width:] for row in grid[middle_height:]]
 
-    x_objectif = np.random.randint(0, GRID_WIDTH - 1)
-    y_objectif = np.random.randint(0, GRID_HEIGHT - 1)
-    grid[y_objectif][x_objectif] = '|T|'
+    sections = [section_1, section_2, section_3, section_4]
 
     personnes = []
     isArrived = []
@@ -95,14 +109,18 @@ def main(nb_personnes):
         isArrived.append(False)
         grid[y_personne][x_personne] = f'|{i + 1}|'
 
-        thread = threading.Thread(target=person_thread,
-                                  args=(i, x_personne, y_personne, x_objectif, y_objectif, isArrived, personnes))
+    x_objectif = np.random.randint(0, GRID_WIDTH - 1)
+    y_objectif = np.random.randint(0, GRID_HEIGHT - 1)
+    grid[y_objectif][x_objectif] = '|T|'
+
+    threads = []
+    for i in range(nb_personnes):
+        thread = threading.Thread(target=move_person, args=(i, x_objectif, y_objectif, isArrived, personnes))
         threads.append(thread)
         thread.start()
 
     for thread in threads:
         thread.join()
-
     #print_grid(grid)
 
 
